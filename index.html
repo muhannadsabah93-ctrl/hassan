@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>معامل القالب للخرسانة الجاهزة - نظام إدارة المواعيد</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-gray-100 min-h-screen flex flex-col">
+
+    <!-- شريط العلوى -->
+    <header class="bg-slate-900 border-b border-slate-800 shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center space-x-3 space-x-reverse mb-3 md:mb-0">
+                <div class="bg-amber-500 p-2.5 rounded-xl text-slate-950 font-black text-xl shadow">
+                    <i class="fa-solid fa-building-shield"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-black tracking-wide text-white">معامل القالب للخرسانة الجاهزة</h1>
+                    <p class="text-xs font-bold text-gray-400">نظام إدارة ومتابعة مواعيد الصب والكونكريت</p>
+                </div>
+            </div>
+            <!-- أزرار التنقل بين الواجهات -->
+            <nav class="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 space-x-1 space-x-reverse">
+                <button onclick="switchTab('main')" id="btn-main" class="px-4 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow-md">
+                    <i class="fa-solid fa-calendar-day ml-1"></i> الرئيسية (اليوم وغداً)
+                </button>
+                <button onclick="switchTab('add')" id="btn-add" class="px-4 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-plus-circle ml-1"></i> إدخال موعد جديد
+                </button>
+                <button onclick="switchTab('logs')" id="btn-logs" class="px-4 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-list-check ml-1"></i> سجل المواعيد والفلتر
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="flex-grow container mx-auto px-4 py-6">
+
+        <!-- 1. الواجهة الرئيسية: مواعيد اليوم وغداً (كارتات متجاورة بحجم خط كبير) -->
+        <section id="tab-main" class="space-y-8">
+            <!-- قسم مواعيد اليوم -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-800 gap-2">
+                    <h2 class="text-xl font-black text-white flex items-center">
+                        <span class="w-3.5 h-3.5 bg-emerald-500 rounded-full ml-3 animate-pulse"></span>
+                        مواعيد صب اليوم (<span id="today-date" class="text-amber-400 mx-1"></span>)
+                    </h2>
+                    <span id="today-count" class="bg-emerald-500/20 text-emerald-400 text-xs font-black px-3 py-1.5 rounded-xl border border-emerald-500/30">0 مواعيد</span>
+                </div>
+                <!-- شبكة الكارتات -->
+                <div id="today-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- تُعبأ ديناميكياً -->
+                </div>
+            </div>
+
+            <!-- قسم مواعيد غداً -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 pb-4 border-b border-slate-800 gap-2">
+                    <h2 class="text-xl font-black text-white flex items-center">
+                        <span class="w-3.5 h-3.5 bg-sky-500 rounded-full ml-3"></span>
+                        مواعيد صب غداً (<span id="tomorrow-date" class="text-amber-400 mx-1"></span>)
+                    </h2>
+                    <span id="tomorrow-count" class="bg-sky-500/20 text-sky-400 text-xs font-black px-3 py-1.5 rounded-xl border border-sky-500/30">0 مواعيد</span>
+                </div>
+                <!-- شبكة الكارتات -->
+                <div id="tomorrow-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- تُعبأ ديناميكياً -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. الواجهة الثانية: إدخال أو تعديل بيانات المواعيد -->
+        <section id="tab-add" class="hidden max-w-2xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+            <div class="mb-6 pb-4 border-b border-slate-800">
+                <h2 id="form-title" class="text-xl font-black text-white"><i class="fa-solid fa-file-circle-plus text-amber-500 ml-2"></i>إدخال موعد صب جديد</h2>
+                <p class="text-xs font-bold text-gray-400 mt-1">يرجى تعبئة تفاصيل الموعد بدقة للنظام الميداني.</p>
+            </div>
+
+            <form id="appointment-form" onsubmit="saveAppointment(event)" class="space-y-5">
+                <input type="hidden" id="edit_id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- نطاق الموقع (شمالي / جنوبي) -->
+                    <div>
+                        <label class="block text-sm font-black text-gray-300 mb-2">نطاق الموقع</label>
+                        <select id="location_zone" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="الموقع الشمالي">الموقع الشمالي</option>
+                            <option value="الموقع الجنوبي">الموقع الجنوبي</option>
+                        </select>
+                    </div>
+
+                    <!-- اسم موقع الصب -->
+                    <div>
+                        <label class="block text-sm font-black text-gray-300 mb-2">اسم موقع الصب</label>
+                        <input type="text" id="pour_site" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل مكان الصب التفصيلي...">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- الكمية -->
+                    <div>
+                        <label class="block text-sm font-black text-gray-300 mb-2">الكمية (متر مكعب)</label>
+                        <input type="text" id="quantity" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="مثال: 50 متر">
+                    </div>
+
+                    <!-- التاريخ -->
+                    <div>
+                        <label class="block text-sm font-black text-gray-300 mb-2">تاريخ الصب</label>
+                        <input type="date" id="pour_date" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- الوقت بقوائم منسدلة -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">وقت الصب</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <select id="time_hour" required class="rounded-2xl bg-slate-950 border border-slate-700 px-3 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none text-center">
+                            <option value="" disabled selected>الساعة</option>
+                            <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                            <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                            <option value="7">7</option><option value="8">8</option><option value="9">9</option>
+                            <option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                        </select>
+                        <select id="time_minute" required class="rounded-2xl bg-slate-950 border border-slate-700 px-3 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none text-center">
+                            <option value="" disabled selected>الدقائق</option>
+                            <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                        </select>
+                        <select id="time_ampm" required class="rounded-2xl bg-slate-950 border border-slate-700 px-3 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none text-center">
+                            <option value="ص">صباحاً (AM)</option>
+                            <option value="م" selected>مساءً (PM)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                    <!-- نوع الصب: مضخة أو شوته -->
+                    <div>
+                        <label class="block text-sm font-black text-gray-300 mb-2">نوع الصب</label>
+                        <select id="pour_type" onchange="togglePumpField()" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                            <option value="شوته">شوته</option>
+                            <option value="مضخة">مضخة</option>
+                        </select>
+                    </div>
+
+                    <!-- اسم المضخة -->
+                    <div id="pump_container" class="hidden">
+                        <label class="block text-sm font-black text-amber-400 mb-2">اسم المضخة / رقمها</label>
+                        <input type="text" id="pump_name" class="w-full rounded-2xl bg-slate-950 border border-amber-500/60 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل اسم أو رقم المضخة...">
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="submit" id="submit-btn" class="flex-grow bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3.5 px-6 rounded-2xl transition shadow-lg text-base">
+                        <i class="fa-solid fa-check ml-2"></i> حفظ الموعد
+                    </button>
+                    <button type="button" onclick="cancelEdit()" id="cancel-btn" class="hidden bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold py-3.5 px-5 rounded-2xl transition">إلغاء</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 3. الواجهة الثالثة: سجل الإدخالات والفلتر -->
+        <section id="tab-logs" class="hidden space-y-6">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                <div class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b border-slate-800 gap-4">
+                    <h2 class="text-xl font-black text-white"><i class="fa-solid fa-filter text-amber-500 ml-2"></i>سجل جميع مواعيد الصب والفلترة</h2>
+                    
+                    <!-- أدوات الفلترة -->
+                    <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                        <input type="date" id="filter-date" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
+                        <select id="filter-zone" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
+                            <option value="">كل المواقع (شمالي/جنوبي)</option>
+                            <option value="الموقع الشمالي">الموقع الشمالي</option>
+                            <option value="الموقع الجنوبي">الموقع الجنوبي</option>
+                        </select>
+                        <select id="filter-type" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
+                            <option value="">كل أنواع الصب</option>
+                            <option value="شوته">شوته</option>
+                            <option value="مضخة">مضخة</option>
+                        </select>
+                        <button onclick="resetFilters()" class="bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold px-4 py-2.5 rounded-2xl text-sm transition">إعادة ضبط</button>
+                    </div>
+                </div>
+
+                <!-- جدول السجلات -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-950 text-gray-400 text-xs font-black uppercase border-b border-slate-800">
+                                <th class="py-3.5 px-4">النطاق</th>
+                                <th class="py-3.5 px-4">موقع الصب</th>
+                                <th class="py-3.5 px-4">النوع / التفاصيل</th>
+                                <th class="py-3.5 px-4">الكمية</th>
+                                <th class="py-3.5 px-4">التاريخ والوقت</th>
+                                <th class="py-3.5 px-4 text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-table-body" class="divide-y divide-slate-800 text-sm font-bold">
+                            <!-- تُعبأ ديناميكياً -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- تذييل الصفحة -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs font-bold text-gray-400 mt-auto">
+        معامل القالب للخرسانة الجاهزة &copy; 2026 - جميع الحقوق محفوظة
+    </footer>
+
+    <!-- سكربت التحكم والتخزين -->
+    <script>
+        let appointments = JSON.parse(localStorage.getItem('concrete_appointments')) || [
+            { id: 1, location_zone: 'الموقع الشمالي', pour_site: 'مشروع الإسكان - عمارة 4', quantity: '45 م³', pour_date: new Date().toISOString().split('T')[0], pour_time: '10:00 ص', hour: '10', minute: '00', ampm: 'ص', pour_type: 'مضخة', pump_name: 'مضخة رقم 1' },
+            { id: 2, location_zone: 'الموقع الجنوبي', pour_site: 'فلل الهدى - قطعة 12', quantity: '30 م³', pour_date: new Date().toISOString().split('T')[0], pour_time: '02:30 م', hour: '2', minute: '30', ampm: 'م', pour_type: 'شوته', pump_name: '' }
+        ];
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const tomorrowObj = new Date();
+        tomorrowObj.setDate(tomorrowObj.getDate() + 1);
+        const tomorrowStr = tomorrowObj.toISOString().split('T')[0];
+
+        document.getElementById('today-date').innerText = todayStr;
+        document.getElementById('tomorrow-date').innerText = tomorrowStr;
+        document.getElementById('pour_date').value = todayStr;
+
+        function switchTab(tabId) {
+            ['main', 'add', 'logs'].forEach(id => {
+                document.getElementById(`tab-${id}`).classList.add('hidden');
+                document.getElementById(`btn-${id}`).className = "px-4 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white";
+            });
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`btn-${tabId}`).className = "px-4 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow-md";
+
+            if(tabId === 'main') renderMainDashboard();
+            if(tabId === 'logs') filterLogs();
+        }
+
+        function togglePumpField() {
+            const pourType = document.getElementById('pour_type').value;
+            const pumpContainer = document.getElementById('pump_container');
+            const pumpInput = document.getElementById('pump_name');
+
+            if(pourType === 'مضخة') {
+                pumpContainer.classList.remove('hidden');
+                pumpInput.required = true;
+            } else {
+                pumpContainer.classList.add('hidden');
+                pumpInput.required = false;
+                pumpInput.value = '';
+            }
+        }
+
+        // حفظ أو تعديل موعد
+        function saveAppointment(e) {
+            e.preventDefault();
+
+            const hour = document.getElementById('time_hour').value;
+            const minute = document.getElementById('time_minute').value;
+            const ampm = document.getElementById('time_ampm').value;
+            const formattedTime = `${hour}:${minute} ${ampm}`;
+            const editId = document.getElementById('edit_id').value;
+
+            const appData = {
+                id: editId ? Number(editId) : Date.now(),
+                location_zone: document.getElementById('location_zone').value,
+                pour_site: document.getElementById('pour_site').value,
+                quantity: document.getElementById('quantity').value,
+                pour_date: document.getElementById('pour_date').value,
+                pour_time: formattedTime,
+                hour: hour,
+                minute: minute,
+                ampm: ampm,
+                pour_type: document.getElementById('pour_type').value,
+                pump_name: document.getElementById('pump_name').value
+            };
+
+            if(editId) {
+                // تعديل
+                appointments = appointments.map(item => item.id == editId ? appData : item);
+                alert('تم تحديث الموعد بنجاح!');
+                cancelEdit();
+            } else {
+                // إضافة جديد
+                appointments.push(appData);
+                alert('تم حفظ الموعد بنجاح!');
+                document.getElementById('appointment-form').reset();
+                document.getElementById('pour_date').value = todayStr;
+                togglePumpField();
+            }
+
+            localStorage.setItem('concrete_appointments', JSON.stringify(appointments));
+            switchTab('main');
+        }
+
+        // التحقق من الرمز السري للأمان
+        function verifyPin(callback) {
+            const pin = prompt('يرجى إدخال الرمز السري للمتابعة:');
+            if(pin === '1111') {
+                callback();
+            } else if(pin !== null) {
+                alert('الرمز السري غير صحيح!');
+            }
+        }
+
+        // طلب حذف موعد
+        function promptDelete(id) {
+            verifyPin(() => {
+                if(confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
+                    appointments = appointments.filter(item => item.id !== id);
+                    localStorage.setItem('concrete_appointments', JSON.stringify(appointments));
+                    renderMainDashboard();
+                    filterLogs();
+                }
+            });
+        }
+
+        // طلب تعديل موعد
+        function promptEdit(id) {
+            verifyPin(() => {
+                const item = appointments.find(i => i.id === id);
+                if(!item) return;
+
+                // تعبئة البيانات في النموذج
+                document.getElementById('edit_id').value = item.id;
+                document.getElementById('location_zone').value = item.location_zone;
+                document.getElementById('pour_site').value = item.pour_site;
+                document.getElementById('quantity').value = item.quantity;
+                document.getElementById('pour_date').value = item.pour_date;
+                document.getElementById('time_hour').value = item.hour || '';
+                document.getElementById('time_minute').value = item.minute || '00';
+                document.getElementById('time_ampm').value = item.ampm || 'م';
+                document.getElementById('pour_type').value = item.pour_type;
+                
+                togglePumpField();
+                if(item.pour_type === 'مضخة') {
+                    document.getElementById('pump_name').value = item.pump_name || '';
+                }
+
+                // تغيير شكل العناوين والأزرار لتوضيح وضع التعديل
+                document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 ml-2"></i>تعديل موعد الصب (#${item.id})`;
+                document.getElementById('submit-btn').innerHTML = `<i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التعديلات`;
+                document.getElementById('cancel-btn').classList.remove('hidden');
+
+                // الانتقال لواجهة التعديل
+                switchTab('add');
+            });
+        }
+
+        function cancelEdit() {
+            document.getElementById('appointment-form').reset();
+            document.getElementById('edit_id').value = '';
+            document.getElementById('pour_date').value = todayStr;
+            document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-file-circle-plus text-amber-500 ml-2"></i>إدخال موعد صب جديد`;
+            document.getElementById('submit-btn').innerHTML = `<i class="fa-solid fa-check ml-2"></i> حفظ الموعد`;
+            document.getElementById('cancel-btn').classList.add('hidden');
+            togglePumpField();
+        }
+
+        // عرض الواجهة الرئيسية بكارتات بخط كبير وواضح
+        function renderMainDashboard() {
+            const todayList = document.getElementById('today-list');
+            const tomorrowList = document.getElementById('tomorrow-list');
+
+            const todayItems = appointments.filter(item => item.pour_date === todayStr);
+            const tomorrowItems = appointments.filter(item => item.pour_date === tomorrowStr);
+
+            document.getElementById('today-count').innerText = `${todayItems.length} موعد`;
+            document.getElementById('tomorrow-count').innerText = `${tomorrowItems.length} موعد`;
+
+            todayList.innerHTML = todayItems.length ? todayItems.map(item => cardHtml(item)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة لهذا اليوم.</p>';
+            tomorrowList.innerHTML = tomorrowItems.length ? tomorrowItems.map(item => cardHtml(item)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة ليوم غدٍ.</p>';
+        }
+
+        // تصميم الكارت بخطوط أكبر (خط عريض وواضح جداً)
+        function cardHtml(item) {
+            return `
+                <div class="bg-slate-950 border-2 border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 hover:border-amber-500 transition shadow-xl">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-black px-3.5 py-1.5 rounded-2xl ${item.location_zone === 'الموقع الشمالي' ? 'bg-indigo-950 text-indigo-300 border border-indigo-700' : 'bg-orange-950 text-orange-300 border border-orange-700'}">${item.location_zone}</span>
+                        <span class="bg-amber-500/20 text-amber-400 font-black text-sm px-3.5 py-1.5 rounded-2xl border border-amber-500/40"><i class="fa-regular fa-clock ml-1.5"></i>${item.pour_time}</span>
+                    </div>
+
+                    <div>
+                        <div class="text-xs font-black text-gray-400 mb-1">موقع الصب:</div>
+                        <h3 class="font-black text-lg text-white leading-relaxed">${item.pour_site}</h3>
+                    </div>
+
+                    <div class="text-sm font-black text-gray-200 grid grid-cols-2 gap-3 pt-4 border-t border-slate-800">
+                        <div><span class="text-gray-400 block text-xs font-bold mb-1">الكمية:</span> <strong class="text-amber-400 text-base">${item.quantity}</strong></div>
+                        <div><span class="text-gray-400 block text-xs font-bold mb-1">طريقة الصب:</span> <span class="text-emerald-400 text-base">${item.pour_type} ${item.pump_name ? ' (' + item.pump_name + ')' : ''}</span></div>
+                    </div>
+
+                    <!-- أزرار التعديل والحذف ضمن الكارت -->
+                    <div class="pt-3 border-t border-slate-800/80 flex justify-end gap-2.5">
+                        <button onclick="promptEdit(${item.id})" class="text-sky-300 hover:text-sky-200 text-xs font-black bg-sky-950/50 border border-sky-800/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
+                            <i class="fa-solid fa-pen-to-square ml-1.5"></i> تعديل
+                        </button>
+                        <button onclick="promptDelete(${item.id})" class="text-red-400 hover:text-red-300 text-xs font-black bg-red-950/50 border border-red-900/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
+                            <i class="fa-solid fa-trash-can ml-1.5"></i> حذف
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // فلترة وعرض السجلات
+        function filterLogs() {
+            const fDate = document.getElementById('filter-date').value;
+            const fZone = document.getElementById('filter-zone').value;
+            const fType = document.getElementById('filter-type').value;
+            const tbody = document.getElementById('logs-table-body');
+
+            let filtered = appointments.filter(item => {
+                return (!fDate || item.pour_date === fDate) &&
+                       (!fZone || item.location_zone === fZone) &&
+                       (!fType || item.pour_type === fType);
+            });
+
+            tbody.innerHTML = filtered.length ? filtered.map(item => `
+                <tr class="hover:bg-slate-950/50 border-b border-slate-800 transition">
+                    <td class="py-4 px-4"><span class="text-xs font-black px-3 py-1.5 rounded-xl ${item.location_zone === 'الموقع الشمالي' ? 'bg-indigo-950 text-indigo-300 border border-indigo-700' : 'bg-orange-950 text-orange-300 border border-orange-700'}">${item.location_zone}</span></td>
+                    <td class="py-4 px-4 text-white text-base">${item.pour_site}</td>
+                    <td class="py-4 px-4"><span class="bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs font-black text-amber-300">${item.pour_type} ${item.pump_name ? ' - ' + item.pump_name : ''}</span></td>
+                    <td class="py-4 px-4 font-black text-amber-400 text-base">${item.quantity}</td>
+                    <td class="py-4 px-4 text-xs font-black text-gray-300">${item.pour_date} <br> <span class="text-amber-400 text-sm">${item.pour_time}</span></td>
+                    <td class="py-4 px-4 text-center space-x-2 space-x-reverse">
+                        <button onclick="promptEdit(${item.id})" class="text-sky-300 hover:text-sky-200 px-3 py-2 transition bg-sky-950/40 rounded-xl border border-sky-800/50 text-xs font-black" title="تعديل الموعد"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>
+                        <button onclick="promptDelete(${item.id})" class="text-red-400 hover:text-red-300 px-3 py-2 transition bg-red-950/40 rounded-xl border border-red-900/50 text-xs font-black" title="حذف الموعد"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>
+                    </td>
+                </tr>
+            `).join('') : `<tr><td colspan="6" class="text-center py-10 text-gray-500 font-black text-base">لا توجد نتائج تطابق خيارات البحث.</td></tr>`;
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-date').value = '';
+            document.getElementById('filter-zone').value = '';
+            document.getElementById('filter-type').value = '';
+            filterLogs();
+        }
+
+        renderMainDashboard();
+    </script>
+</body>
+</html>
