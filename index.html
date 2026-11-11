@@ -7,6 +7,12 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase App (The core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <!-- Firebase Realtime Database -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&display=swap');
         body { font-family: 'Cairo', sans-serif; }
@@ -216,12 +222,24 @@
         معامل القالب للخرسانة الجاهزة &copy; 2026 - جميع الحقوق محفوظة
     </footer>
 
-    <!-- سكربت التحكم والتخزين -->
+    <!-- سكربت التحكم والاتصال بقاعدة بيانات Firebase -->
     <script>
-        let appointments = JSON.parse(localStorage.getItem('concrete_appointments')) || [
-            { id: 1, location_zone: 'الموقع الشمالي', pour_site: 'مشروع الإسكان - عمارة 4', quantity: '45 م³', pour_date: new Date().toISOString().split('T')[0], pour_time: '10:00 ص', hour: '10', minute: '00', ampm: 'ص', pour_type: 'مضخة', pump_name: 'مضخة رقم 1' },
-            { id: 2, location_zone: 'الموقع الجنوبي', pour_site: 'فلل الهدى - قطعة 12', quantity: '30 م³', pour_date: new Date().toISOString().split('T')[0], pour_time: '02:30 م', hour: '2', minute: '30', ampm: 'م', pour_type: 'شوته', pump_name: '' }
-        ];
+        // ضع بيانات مشروعك الحقيقية هنا من لوحة تحكم Firebase
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        // تهيئة فايربيس
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let appointments = [];
 
         const todayStr = new Date().toISOString().split('T')[0];
         const tomorrowObj = new Date();
@@ -231,6 +249,23 @@
         document.getElementById('today-date').innerText = todayStr;
         document.getElementById('tomorrow-date').innerText = tomorrowStr;
         document.getElementById('pour_date').value = todayStr;
+
+        // جلب البيانات ومزامنتها لحظياً من قاعدة البيانات السحابية
+        database.ref('appointments').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                appointments = Object.keys(data).map(key => ({
+                    id: key,
+                    ...data[key]
+                }));
+            } else {
+                appointments = [];
+            }
+            renderMainDashboard();
+            if(!document.getElementById('tab-logs').classList.contains('hidden')) {
+                filterLogs();
+            }
+        });
 
         function switchTab(tabId) {
             ['main', 'add', 'logs'].forEach(id => {
@@ -259,7 +294,7 @@
             }
         }
 
-        // حفظ أو تعديل موعد
+        // حفظ أو تعديل موعد في Firebase
         function saveAppointment(e) {
             e.preventDefault();
 
@@ -270,7 +305,6 @@
             const editId = document.getElementById('edit_id').value;
 
             const appData = {
-                id: editId ? Number(editId) : Date.now(),
                 location_zone: document.getElementById('location_zone').value,
                 pour_site: document.getElementById('pour_site').value,
                 quantity: document.getElementById('quantity').value,
@@ -284,21 +318,30 @@
             };
 
             if(editId) {
-                // تعديل
-                appointments = appointments.map(item => item.id == editId ? appData : item);
-                alert('تم تحديث الموعد بنجاح!');
-                cancelEdit();
+                // تعديل موعد قائم
+                database.ref('appointments/' + editId).update(appData, (error) => {
+                    if(!error) {
+                        alert('تم تحديث الموعد بنجاح!');
+                        cancelEdit();
+                        switchTab('main');
+                    } else {
+                        alert('حدث خطأ أثناء التحديث!');
+                    }
+                });
             } else {
-                // إضافة جديد
-                appointments.push(appData);
-                alert('تم حفظ الموعد بنجاح!');
-                document.getElementById('appointment-form').reset();
-                document.getElementById('pour_date').value = todayStr;
-                togglePumpField();
+                // إضافة موعد جديد
+                database.ref('appointments').push(appData, (error) => {
+                    if(!error) {
+                        alert('تم حفظ الموعد بنجاح!');
+                        document.getElementById('appointment-form').reset();
+                        document.getElementById('pour_date').value = todayStr;
+                        togglePumpField();
+                        switchTab('main');
+                    } else {
+                        alert('حدث خطأ أثناء الحفظ!');
+                    }
+                });
             }
-
-            localStorage.setItem('concrete_appointments', JSON.stringify(appointments));
-            switchTab('main');
         }
 
         // التحقق من الرمز السري للأمان
@@ -311,14 +354,13 @@
             }
         }
 
-        // طلب حذف موعد
+        // طلب حذف موعد من Firebase
         function promptDelete(id) {
             verifyPin(() => {
                 if(confirm('هل أنت متأكد من حذف هذا الموعد؟')) {
-                    appointments = appointments.filter(item => item.id !== id);
-                    localStorage.setItem('concrete_appointments', JSON.stringify(appointments));
-                    renderMainDashboard();
-                    filterLogs();
+                    database.ref('appointments/' + id).remove().then(() => {
+                        // يتم تحديث الواجهات تلقائياً عبر حدث الـ on('value')
+                    });
                 }
             });
         }
@@ -346,7 +388,7 @@
                 }
 
                 // تغيير شكل العناوين والأزرار لتوضيح وضع التعديل
-                document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 ml-2"></i>تعديل موعد الصب (#${item.id})`;
+                document.getElementById('form-title').innerHTML = `<i class="fa-solid fa-pen-to-square text-amber-500 ml-2"></i>تعديل موعد الصب (#${item.id.slice(-4)})`;
                 document.getElementById('submit-btn').innerHTML = `<i class="fa-solid fa-floppy-disk ml-2"></i> حفظ التعديلات`;
                 document.getElementById('cancel-btn').classList.remove('hidden');
 
@@ -401,10 +443,10 @@
 
                     <!-- أزرار التعديل والحذف ضمن الكارت -->
                     <div class="pt-3 border-t border-slate-800/80 flex justify-end gap-2.5">
-                        <button onclick="promptEdit(${item.id})" class="text-sky-300 hover:text-sky-200 text-xs font-black bg-sky-950/50 border border-sky-800/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
+                        <button onclick="promptEdit('${item.id}')" class="text-sky-300 hover:text-sky-200 text-xs font-black bg-sky-950/50 border border-sky-800/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
                             <i class="fa-solid fa-pen-to-square ml-1.5"></i> تعديل
                         </button>
-                        <button onclick="promptDelete(${item.id})" class="text-red-400 hover:text-red-300 text-xs font-black bg-red-950/50 border border-red-900/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
+                        <button onclick="promptDelete('${item.id}')" class="text-red-400 hover:text-red-300 text-xs font-black bg-red-950/50 border border-red-900/60 px-3.5 py-2 rounded-xl transition flex items-center shadow">
                             <i class="fa-solid fa-trash-can ml-1.5"></i> حذف
                         </button>
                     </div>
@@ -433,8 +475,8 @@
                     <td class="py-4 px-4 font-black text-amber-400 text-base">${item.quantity}</td>
                     <td class="py-4 px-4 text-xs font-black text-gray-300">${item.pour_date} <br> <span class="text-amber-400 text-sm">${item.pour_time}</span></td>
                     <td class="py-4 px-4 text-center space-x-2 space-x-reverse">
-                        <button onclick="promptEdit(${item.id})" class="text-sky-300 hover:text-sky-200 px-3 py-2 transition bg-sky-950/40 rounded-xl border border-sky-800/50 text-xs font-black" title="تعديل الموعد"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>
-                        <button onclick="promptDelete(${item.id})" class="text-red-400 hover:text-red-300 px-3 py-2 transition bg-red-950/40 rounded-xl border border-red-900/50 text-xs font-black" title="حذف الموعد"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>
+                        <button onclick="promptEdit('${item.id}')" class="text-sky-300 hover:text-sky-200 px-3 py-2 transition bg-sky-950/40 rounded-xl border border-sky-800/50 text-xs font-black" title="تعديل الموعد"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>
+                        <button onclick="promptDelete('${item.id}')" class="text-red-400 hover:text-red-300 px-3 py-2 transition bg-red-950/40 rounded-xl border border-red-900/50 text-xs font-black" title="حذف الموعد"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>
                     </td>
                 </tr>
             `).join('') : `<tr><td colspan="6" class="text-center py-10 text-gray-500 font-black text-base">لا توجد نتائج تطابق خيارات البحث.</td></tr>`;
@@ -446,8 +488,6 @@
             document.getElementById('filter-type').value = '';
             filterLogs();
         }
-
-        renderMainDashboard();
     </script>
 </body>
 </html>
