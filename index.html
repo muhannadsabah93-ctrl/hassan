@@ -81,62 +81,47 @@
             </div>
         </section>
 
-        <!-- 2. الواجهة الثانية: إدخال أو تعديل بيانات المواعيد -->
-        <section id="tab-add" class="hidden max-w-3xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-xl">
+        <!-- 2. الواجهة الثانية: إدخال أو تعديل بيانات المواعيد (تصميم عمودي متناسق للموبايل والشاشات) -->
+        <section id="tab-add" class="hidden max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-5 md:p-8 shadow-xl">
             <div class="mb-6 pb-4 border-b border-slate-800">
                 <h2 id="form-title" class="text-xl font-black text-white"><i class="fa-solid fa-file-circle-plus text-amber-500 ml-2"></i>إدخال موعد صب جديد</h2>
                 <p class="text-xs font-bold text-gray-400 mt-1">يرجى تعبئة تفاصيل الموعد بدقة للنظام الميداني.</p>
             </div>
 
-            <form id="appointment-form" onsubmit="saveAppointment(event)" class="space-y-5">
+            <form id="appointment-form" onsubmit="saveAppointment(event)" class="space-y-4">
                 <input type="hidden" id="edit_id">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- نطاق الموقع (شمالي / جنوبي) -->
-                    <div>
-                        <label class="block text-sm font-black text-gray-300 mb-2">نطاق الموقع</label>
-                        <select id="location_zone" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="الموقع الشمالي">الموقع الشمالي</option>
-                            <option value="الموقع الجنوبي">الموقع الجنوبي</option>
-                        </select>
-                    </div>
-
-                    <!-- اسم الزبون -->
-                    <div>
-                        <label class="block text-sm font-black text-gray-300 mb-2"><i class="fa-solid fa-user ml-1"></i> اسم الزبون</label>
-                        <input type="text" id="customer_name" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل اسم الزبون...">
-                    </div>
+                <!-- نطاق الموقع -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">نطاق الموقع</label>
+                    <select id="location_zone" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <option value="الموقع الشمالي">الموقع الشمالي</option>
+                        <option value="الموقع الجنوبي">الموقع الجنوبي</option>
+                    </select>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- عنوان موقع الصب -->
-                    <div>
-                        <label class="block text-sm font-black text-amber-400 mb-2"><i class="fa-solid fa-location-dot ml-1"></i> عنوان موقع الصب</label>
-                        <input type="text" id="pour_site" required class="w-full rounded-2xl bg-slate-950 border border-amber-500/70 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل العنوان بالتفصيل (المنطقة، الشارع)...">
-                    </div>
-
-                    <!-- الكمية -->
-                    <div>
-                        <label class="block text-sm font-black text-gray-300 mb-2">الكمية (متر مكعب)</label>
-                        <input type="text" id="quantity" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="مثال: 50 متر">
-                    </div>
+                <!-- اسم الزبون -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2"><i class="fa-solid fa-user ml-1"></i> اسم الزبون</label>
+                    <input type="text" id="customer_name" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل اسم الزبون...">
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <!-- التاريخ -->
-                    <div>
-                        <label class="block text-sm font-black text-gray-300 mb-2">تاريخ الصب</label>
-                        <input type="date" id="pour_date" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                    </div>
+                <!-- عنوان موقع الصب -->
+                <div>
+                    <label class="block text-sm font-black text-amber-400 mb-2"><i class="fa-solid fa-location-dot ml-1"></i> عنوان موقع الصب</label>
+                    <input type="text" id="pour_site" required class="w-full rounded-2xl bg-slate-950 border border-amber-500/70 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل العنوان بالتفصيل (المنطقة، الشارع)...">
+                </div>
 
-                    <!-- نوع الصب: مضخة أو شوته -->
-                    <div>
-                        <label class="block text-sm font-black text-gray-300 mb-2">نوع الصب</label>
-                        <select id="pour_type" onchange="togglePumpField()" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                            <option value="شوته">شوته</option>
-                            <option value="مضخة">مضخة</option>
-                        </select>
-                    </div>
+                <!-- الكمية -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">الكمية (متر مكعب)</label>
+                    <input type="text" id="quantity" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="مثال: 50 متر">
+                </div>
+
+                <!-- تاريخ الصب -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">تاريخ الصب</label>
+                    <input type="date" id="pour_date" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
                 </div>
 
                 <!-- الوقت (الدقائق افتراضياً 00، والوقت صباحاً) -->
@@ -161,6 +146,15 @@
                             <option value="م">مساءً (PM)</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- نوع الصب: مضخة أو شوته -->
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">نوع الصب</label>
+                    <select id="pour_type" onchange="togglePumpField()" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <option value="شوته">شوته</option>
+                        <option value="مضخة">مضخة</option>
+                    </select>
                 </div>
 
                 <!-- اسم المضخة -->
