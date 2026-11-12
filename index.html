@@ -96,6 +96,7 @@
                     <select id="location_zone" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
                         <option value="الموقع الشمالي">الموقع الشمالي</option>
                         <option value="الموقع الجنوبي">الموقع الجنوبي</option>
+                        <option value="مشترك">مشترك</option>
                     </select>
                 </div>
 
@@ -180,9 +181,10 @@
                     <div class="flex flex-wrap gap-3 w-full md:w-auto">
                         <input type="date" id="filter-date" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
                         <select id="filter-zone" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
-                            <option value="">كل المواقع (شمالي/جنوبي)</option>
+                            <option value="">كل المواقع (شمالي/جنوبي/مشترك)</option>
                             <option value="الموقع الشمالي">الموقع الشمالي</option>
                             <option value="الموقع الجنوبي">الموقع الجنوبي</option>
+                            <option value="مشترك">مشترك</option>
                         </select>
                         <select id="filter-type" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
                             <option value="">كل أنواع الصب</option>
@@ -435,10 +437,17 @@
         }
 
         function cardHtml(item) {
+            let badgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-700';
+            if (item.location_zone === 'الموقع الجنوبي') {
+                badgeClass = 'bg-orange-950 text-orange-300 border border-orange-700';
+            } else if (item.location_zone === 'مشترك') {
+                badgeClass = 'bg-purple-950 text-purple-300 border border-purple-700';
+            }
+
             return `
                 <div class="bg-slate-950 border-2 border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-4 hover:border-amber-500 transition shadow-xl">
                     <div class="flex justify-between items-center">
-                        <span class="text-xs font-black px-3.5 py-1.5 rounded-2xl ${item.location_zone === 'الموقع الشمالي' ? 'bg-indigo-950 text-indigo-300 border border-indigo-700' : 'bg-orange-950 text-orange-300 border border-orange-700'}">${item.location_zone}</span>
+                        <span class="text-xs font-black px-3.5 py-1.5 rounded-2xl ${badgeClass}">${item.location_zone}</span>
                         <span class="bg-amber-500/20 text-amber-400 font-black text-xs px-3.5 py-1.5 rounded-2xl border border-amber-500/40"><i class="fa-regular fa-clock ml-1"></i>${item.pour_time}</span>
                     </div>
 
@@ -476,22 +485,38 @@
                        (!fType || item.pour_type === fType);
             });
 
-            tbody.innerHTML = filtered.length ? filtered.map(item => `
-                <tr class="hover:bg-slate-950/50 border-b border-slate-800 transition">
-                    <td class="py-4 px-4"><span class="text-xs font-black px-3 py-1.5 rounded-xl ${item.location_zone === 'الموقع الشمالي' ? 'bg-indigo-950 text-indigo-300 border border-indigo-700' : 'bg-orange-950 text-orange-300 border border-orange-700'}">${item.location_zone}</span></td>
-                    <td class="py-4 px-4 text-white font-bold text-sm"><i class="fa-solid fa-user text-sky-400 ml-1"></i> ${item.customer_name || '-'}</td>
-                    <td class="py-4 px-4 text-white font-medium text-sm"><i class="fa-solid fa-location-dot text-emerald-400 ml-1"></i> ${item.pour_site}</td>
-                    <td class="py-4 px-4">
-                        <span class="bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl text-xs font-black text-amber-300 block w-fit mb-1">${item.pour_type} ${item.pump_name ? ' - ' + item.pump_name : ''}</span>
-                        <strong class="text-amber-400 text-sm">${item.quantity}</strong>
-                    </td>
-                    <td class="py-4 px-4 text-xs font-black text-gray-300">${item.pour_date} <br> <span class="text-amber-400 text-sm">${item.pour_time}</span></td>
-                    <td class="py-4 px-4 text-center space-x-2 space-x-reverse">
-                        <button onclick="promptEdit('${item.id}')" class="text-sky-300 hover:text-sky-200 px-3 py-2 transition bg-sky-950/40 rounded-xl border border-sky-800/50 text-xs font-black" title="تعديل الموعد"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>
-                        <button onclick="promptDelete('${item.id}')" class="text-red-400 hover:text-red-300 px-3 py-2 transition bg-red-950/40 rounded-xl border border-red-900/50 text-xs font-black" title="حذف الموعد"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>
-                    </td>
-                </tr>
-            `).join('') : `<tr><td colspan="6" class="text-center py-10 text-gray-500 font-black text-base">لا توجد نتائج تطابق خيارات البحث.</td></tr>`;
+            tbody.innerHTML = filtered.length ? filtered.map(item => {
+                let zoneBadgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-700';
+                if (item.location_zone === 'الموقع الجنوبي') {
+                    zoneBadgeClass = 'bg-orange-950 text-orange-300 border border-orange-700';
+                } else if (item.location_zone === 'مشترك') {
+                    zoneBadgeClass = 'bg-purple-950 text-purple-300 border border-purple-700';
+                }
+
+                return `
+                    <tr class="hover:bg-slate-950/50 border-b border-slate-800 transition">
+                        <td class="py-4 px-4"><span class="text-xs font-black px-3 py-1.5 rounded-xl ${zoneBadgeClass}">${item.location_zone}</span></td>
+                        <td class="py-4 px-4 text-white font-bold text-sm"><i class="fa-solid fa-user text-sky-400 ml-1"></i> ${item.customer_name || '-'}</td>
+                        <td class="py-4 px-4 text-white font-medium text-sm"><i class="fa-solid fa-location-dot text-emerald-400 ml-1"></i> ${item.pour_site}</td>
+                        <td class="py-4 px-4">
+                            <span class="bg-slate-950 border border-slate-800 px-3 py-1 rounded-xl text-xs font-black text-amber-300 block w-fit mb-1">${item.pour_type} ${item.pump_name ? ' - ' + item.pump_name : ''}</span>
+                            <strong class="text-amber-400 text-sm">${item.quantity}</strong>
+                        </td>
+                        <td class="py-4 px-4 text-xs font-black text-gray-300">${item.pour_date} <br> <span class="text-amber-400 text-sm">${item.pour_time}</span></td>
+                        <td class="py-4 px-4 text-center space-x-2 space-x-reverse">
+                            <button onclick="promptEdit('${item.id}')" class="text-sky-300 hover:text-sky-200 px-3 py-2 transition bg-sky-950/40 rounded-xl border border-sky-800/50 text-xs font-black" title="تعديل الموعد"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>
+                            <button onclick="promptDelete('${item.id}')" class="text-red-400 hover:text-red-300 px-3 py-2 transition bg-red-950/40 rounded-xl border border-red-900/50 text-xs font-black" title="حذف الموعد"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('') : `<tr><td colspan="6" class="text-center py-10 text-gray-500 font-black text-base">لا توجد نتائج تطابق خيارات البحث.</td></tr>`;
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-date').value = '';
+            document.getElementById('filter-zone').value = '';
+            document.getElementById('filter-type').value = '';
+            filterLogs();
         }
 
         updateViews();
