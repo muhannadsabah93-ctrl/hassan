@@ -19,7 +19,7 @@
 </head>
 <body class="bg-slate-950 text-gray-100 min-h-screen flex flex-col">
 
-    <!-- شريط العلوى -->
+    <!-- شريط العلوي -->
     <header class="bg-slate-900 border-b border-slate-800 shadow-lg">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
             <div class="flex items-center space-x-3 space-x-reverse mb-3 md:mb-0">
@@ -40,7 +40,7 @@
                     <i class="fa-solid fa-plus-circle ml-1"></i> إدخال موعد جديد
                 </button>
                 <button onclick="switchTab('logs')" id="btn-logs" class="px-4 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white">
-                    <i class="fa-solid fa-list-check ml-1"></i> سجل المواعيد والفلتر
+                    <i class="fa-solid fa-folder-open ml-1"></i> سجل الزبائن والمواعيد
                 </button>
             </nav>
         </div>
@@ -100,10 +100,13 @@
                     </select>
                 </div>
 
-                <!-- اسم الزبون -->
+                <!-- اسم الزبون (قائمة منسدلة + خيار إضافة زبون جديد في الأعلى) -->
                 <div>
                     <label class="block text-sm font-black text-gray-300 mb-2"><i class="fa-solid fa-user ml-1"></i> اسم الزبون</label>
-                    <input type="text" id="customer_name" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="أدخل اسم الزبون...">
+                    <select id="customer_name" onchange="handleCustomerSelect(this)" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <option value="" disabled selected>-- اختر اسم الزبون --</option>
+                        <option value="__ADD_NEW__" class="bg-amber-500 text-slate-950 font-black">+ إضافة زبون جديد</option>
+                    </select>
                 </div>
 
                 <!-- عنوان موقع الصب -->
@@ -172,29 +175,140 @@
             </form>
         </section>
 
-        <!-- 3. الواجهة الثالثة: سجل الإدخالات والفلتر -->
+        <!-- 3. الواجهة الثالثة: سجل الزبائن والبحث الإجمالي -->
         <section id="tab-logs" class="hidden space-y-6">
-            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b border-slate-800 gap-4">
-                    <h2 class="text-xl font-black text-white"><i class="fa-solid fa-filter text-amber-500 ml-2"></i>سجل جميع مواعيد الصب والفلترة</h2>
-                    
-                    <div class="flex flex-wrap gap-3 w-full md:w-auto">
-                        <input type="date" id="filter-date" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
-                        <select id="filter-zone" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
-                            <option value="">كل المواقع (شمالي/جنوبي/مشترك)</option>
+            <!-- شريط التبديل بين وضع الزبائن ووضع البحث الإجمالي -->
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-xl flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex bg-slate-950 p-1.5 rounded-2xl border border-slate-800 w-full sm:w-auto">
+                    <button onclick="switchLogMode('customers')" id="mode-customers" class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow">
+                        <i class="fa-solid fa-users ml-1.5"></i> ملفات الزبائن (كارتات)
+                    </button>
+                    <button onclick="switchLogMode('global')" id="mode-global" class="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white">
+                        <i class="fa-solid fa-magnifying-glass-chart ml-1.5"></i> بحث إجمالي في وقت محدد
+                    </button>
+                </div>
+
+                <button onclick="openNewCustomerModal(false)" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-black px-4 py-2.5 rounded-2xl text-sm transition shadow flex items-center justify-center">
+                    <i class="fa-solid fa-user-plus ml-1.5"></i> إضافة زبون جديد
+                </button>
+            </div>
+
+            <!-- الوضع الأول: ملفات الزبائن (قائمة الزبائن -> صفحة الزبون وكارتاته) -->
+            <div id="view-customers-mode" class="space-y-6">
+                <!-- قائمة جميع الزبائن -->
+                <div id="customers-directory" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl">
+                    <div class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b border-slate-800 gap-4">
+                        <div>
+                            <h2 class="text-xl font-black text-white"><i class="fa-solid fa-address-book text-amber-500 ml-2"></i>سجل الزبائن</h2>
+                            <p class="text-xs font-bold text-gray-400 mt-1">اضغط على أي زبون لفتح صفحته ومشاهدة كارتات مواعيده بالتفصيل.</p>
+                        </div>
+                        <div class="w-full md:w-72 relative">
+                            <i class="fa-solid fa-search absolute right-3.5 top-3.5 text-gray-500 text-sm"></i>
+                            <input type="text" id="customer-search-input" oninput="renderCustomersDirectory()" placeholder="ابحث عن اسم الزبون..." class="w-full rounded-2xl bg-slate-950 border border-slate-700 pr-10 pl-4 py-2.5 text-sm text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <div id="customers-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- تُعبأ ديناميكياً بملفات الزبائن -->
+                    </div>
+                </div>
+
+                <!-- صفحة الزبون المحدد (تظهر عند الضغط على زبون) -->
+                <div id="customer-profile-view" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center pb-5 border-b border-slate-800 gap-4">
+                        <div class="flex items-center gap-3">
+                            <button onclick="closeCustomerProfile()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 font-black px-4 py-2.5 rounded-2xl text-sm transition flex items-center">
+                                <i class="fa-solid fa-arrow-right ml-2"></i> رجوع للزبائن
+                            </button>
+                            <div>
+                                <h2 id="profile-customer-name" class="text-2xl font-black text-white"></h2>
+                                <p class="text-xs font-bold text-gray-400">سجل وكارتات مواعيد الصب الخاصة بالزبون</p>
+                            </div>
+                        </div>
+
+                        <!-- ملخص إحصائي للزبون -->
+                        <div class="flex flex-wrap gap-3">
+                            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center">
+                                <span class="text-xs text-gray-400 block font-bold">عدد المواعيد</span>
+                                <strong id="profile-total-count" class="text-sky-400 text-lg font-black">0</strong>
+                            </div>
+                            <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl text-center">
+                                <span class="text-xs text-gray-400 block font-bold">مجموع الكميات</span>
+                                <strong id="profile-total-qty" class="text-amber-400 text-lg font-black">0 م³</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فلتر سريع داخل صفحة الزبون -->
+                    <div class="flex flex-wrap items-center gap-3 bg-slate-950/60 p-3.5 rounded-2xl border border-slate-800">
+                        <span class="text-xs font-black text-gray-400"><i class="fa-solid fa-filter text-amber-500 ml-1"></i> تصفية مواعيد الزبون حسب التاريخ:</span>
+                        <input type="date" id="profile-date-from" onchange="renderCustomerCards()" class="rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-1.5 text-xs focus:outline-none">
+                        <span class="text-xs text-gray-500 font-bold">إلى</span>
+                        <input type="date" id="profile-date-to" onchange="renderCustomerCards()" class="rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-1.5 text-xs focus:outline-none">
+                        <button onclick="resetProfileFilter()" class="bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold px-3 py-1.5 rounded-xl text-xs transition">عرض الكل</button>
+                    </div>
+
+                    <!-- كارتات مواعيد الزبون -->
+                    <div id="customer-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- تُعبأ ديناميكياً بالكارتات -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- الوضع الثاني: البحث الإجمالي في وقت محدد -->
+            <div id="view-global-mode" class="hidden bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-5 border-b border-slate-800 gap-4">
+                    <div>
+                        <h2 class="text-xl font-black text-white"><i class="fa-solid fa-clock-rotate-left text-amber-500 ml-2"></i>البحث الإجمالي للمواعيد في وقت محدد</h2>
+                        <p class="text-xs font-bold text-gray-400 mt-1">استعرض جميع مواعيد الصب لكافة الزبائن ضمن فترة زمنية محددة.</p>
+                    </div>
+
+                    <!-- إجمالي نتائج البحث -->
+                    <div class="flex gap-3">
+                        <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl">
+                            <span class="text-xs text-gray-400 font-bold ml-1">العدد:</span>
+                            <strong id="global-total-count" class="text-emerald-400 font-black">0</strong>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-2xl">
+                            <span class="text-xs text-gray-400 font-bold ml-1">إجمالي الكمية:</span>
+                            <strong id="global-total-qty" class="text-amber-400 font-black">0 م³</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- أدوات الفلترة الزمنية الشاملة -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">من تاريخ:</label>
+                        <input type="date" id="filter-date-from" onchange="filterGlobalLogs()" class="w-full rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-2 text-sm focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">إلى تاريخ:</label>
+                        <input type="date" id="filter-date-to" onchange="filterGlobalLogs()" class="w-full rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-2 text-sm focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">نطاق الموقع:</label>
+                        <select id="filter-zone" onchange="filterGlobalLogs()" class="w-full rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-2 text-sm focus:outline-none">
+                            <option value="">كل المواقع</option>
                             <option value="الموقع الشمالي">الموقع الشمالي</option>
                             <option value="الموقع الجنوبي">الموقع الجنوبي</option>
                             <option value="مشترك">مشترك</option>
                         </select>
-                        <select id="filter-type" onchange="filterLogs()" class="rounded-2xl bg-slate-950 border border-slate-700 text-white font-bold px-3.5 py-2.5 text-sm focus:outline-none">
-                            <option value="">كل أنواع الصب</option>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-1">نوع الصب:</label>
+                        <select id="filter-type" onchange="filterGlobalLogs()" class="w-full rounded-xl bg-slate-900 border border-slate-700 text-white font-bold px-3 py-2 text-sm focus:outline-none">
+                            <option value="">كل الأنواع</option>
                             <option value="شوته">شوته</option>
                             <option value="مضخة">مضخة</option>
                         </select>
-                        <button onclick="resetFilters()" class="bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold px-4 py-2.5 rounded-2xl text-sm transition">إعادة ضبط</button>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="resetGlobalFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-gray-300 font-black py-2 px-4 rounded-xl text-sm transition">إعادة ضبط</button>
                     </div>
                 </div>
 
+                <!-- جدول النتائج الإجمالية -->
                 <div class="overflow-x-auto">
                     <table class="w-full text-right border-collapse">
                         <thead>
@@ -217,14 +331,36 @@
 
     </main>
 
+    <!-- نافذة منبثقة (Modal) لإضافة زبون جديد فقط -->
+    <div id="new-customer-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+                <h3 class="text-lg font-black text-white"><i class="fa-solid fa-user-plus text-amber-500 ml-2"></i>إضافة زبون جديد</h3>
+                <button onclick="closeNewCustomerModal()" class="text-gray-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <form onsubmit="saveNewCustomer(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-black text-gray-300 mb-2">اسم الزبون الجديد</label>
+                    <input type="text" id="new_customer_input" required class="w-full rounded-2xl bg-slate-950 border border-amber-500/70 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none" placeholder="اكتب اسم الزبون هنا...">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="submit" class="flex-grow bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-2xl transition shadow-lg">
+                        <i class="fa-solid fa-plus ml-1"></i> إضافة
+                    </button>
+                    <button type="button" onclick="closeNewCustomerModal()" class="bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold px-5 py-3 rounded-2xl transition">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- تذييل الصفحة -->
     <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs font-bold text-gray-400 mt-auto">
         معامل القالب للخرسانة الجاهزة &copy; 2026 - جميع الحقوق محفوظة
     </footer>
 
-    <!-- سكربت التحكم والتفاعل مع بياناتك الحقيقية -->
+    <!-- سكربت التحكم والتفاعل مع Firebase -->
     <script>
-        // إعدادات مشروعك الحقيقية على Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyDTuGQCgYoZjN3q2Pxt7-PKMsjtUtBoCec",
             authDomain: "hassan-6b455.firebaseapp.com",
@@ -247,6 +383,10 @@
         }
 
         let appointments = [];
+        let savedCustomers = [];
+        let selectedCustomerForProfile = null;
+        let previousSelectedCustomer = "";
+        let openedFromDropdown = false;
 
         const todayStr = new Date().toISOString().split('T')[0];
         const tomorrowObj = new Date();
@@ -257,7 +397,7 @@
         document.getElementById('tomorrow-date').innerText = tomorrowStr;
         document.getElementById('pour_date').value = todayStr;
 
-        // جلب البيانات لحظياً من قاعدة بياناتك في Firebase
+        // الاستماع لبيانات المواعيد لحظياً
         if (database) {
             database.ref('appointments').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -269,16 +409,120 @@
                 } else {
                     appointments = [];
                 }
+                populateCustomerDropdown();
                 updateViews();
-            }, (error) => {
-                console.error("خطأ في قراءة البيانات: ", error);
             });
+
+            // الاستماع لقائمة الزبائن المسجلين لحظياً
+            database.ref('customers').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    savedCustomers = Object.keys(data).map(key => ({
+                        id: key,
+                        name: data[key].name
+                    }));
+                } else {
+                    savedCustomers = [];
+                }
+                populateCustomerDropdown();
+                updateViews();
+            });
+        }
+
+        // دمج أسماء الزبائن من قاعدة الزبائن + المواعيد السابقة بدون تكرار
+        function getAllUniqueCustomers() {
+            const namesSet = new Set();
+            savedCustomers.forEach(c => {
+                if (c.name && c.name.trim()) namesSet.add(c.name.trim());
+            });
+            appointments.forEach(a => {
+                if (a.customer_name && a.customer_name.trim()) namesSet.add(a.customer_name.trim());
+            });
+            return Array.from(namesSet).sort((a, b) => a.localeCompare(b, 'ar'));
+        }
+
+        // تعبئة القائمة المنسدلة للزبائن مع إبقاء خيار "+ إضافة زبون جديد" في الأعلى
+        function populateCustomerDropdown(selectNameAfter = null) {
+            const select = document.getElementById('customer_name');
+            const currentVal = selectNameAfter || select.value;
+            const customersList = getAllUniqueCustomers();
+
+            let optionsHtml = `
+                <option value="" disabled ${!currentVal || currentVal === '__ADD_NEW__' ? 'selected' : ''}>-- اختر اسم الزبون --</option>
+                <option value="__ADD_NEW__" class="bg-amber-500 text-slate-950 font-black">+ إضافة زبون جديد</option>
+            `;
+
+            customersList.forEach(name => {
+                const isSelected = (currentVal === name) ? 'selected' : '';
+                optionsHtml += `<option value="${name}" ${isSelected}>${name}</option>`;
+            });
+
+            select.innerHTML = optionsHtml;
+            if (currentVal && currentVal !== '__ADD_NEW__') {
+                previousSelectedCustomer = currentVal;
+            }
+        }
+
+        // التعامل مع اختيار "+ إضافة زبون جديد" من القائمة المنسدلة
+        function handleCustomerSelect(selectEl) {
+            if (selectEl.value === '__ADD_NEW__') {
+                selectEl.value = previousSelectedCustomer || '';
+                openNewCustomerModal(true);
+            } else {
+                previousSelectedCustomer = selectEl.value;
+            }
+        }
+
+        function openNewCustomerModal(fromDropdown = false) {
+            openedFromDropdown = fromDropdown;
+            document.getElementById('new_customer_input').value = '';
+            document.getElementById('new-customer-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('new_customer_input').focus(), 100);
+        }
+
+        function closeNewCustomerModal() {
+            document.getElementById('new-customer-modal').classList.add('hidden');
+        }
+
+        // حفظ الزبون الجديد في Firebase
+        function saveNewCustomer(e) {
+            e.preventDefault();
+            const rawName = document.getElementById('new_customer_input').value.trim();
+            if (!rawName) return;
+
+            const existing = getAllUniqueCustomers();
+            if (existing.includes(rawName)) {
+                alert('هذا الزبون مسجل مسبقاً في القائمة!');
+                populateCustomerDropdown(rawName);
+                closeNewCustomerModal();
+                return;
+            }
+
+            if (database) {
+                database.ref('customers').push({ name: rawName }).then(() => {
+                    closeNewCustomerModal();
+                    populateCustomerDropdown(rawName);
+                    if (!openedFromDropdown) {
+                        alert(`تمت إضافة الزبون "${rawName}" بنجاح!`);
+                    }
+                }).catch(err => {
+                    alert('حدث خطأ أثناء إضافة الزبون: ' + err.message);
+                });
+            }
         }
 
         function updateViews() {
             renderMainDashboard();
             if (!document.getElementById('tab-logs').classList.contains('hidden')) {
-                filterLogs();
+                if (!document.getElementById('view-customers-mode').classList.contains('hidden')) {
+                    if (selectedCustomerForProfile) {
+                        renderCustomerCards();
+                    } else {
+                        renderCustomersDirectory();
+                    }
+                } else {
+                    filterGlobalLogs();
+                }
             }
         }
 
@@ -290,8 +534,141 @@
             document.getElementById(`tab-${tabId}`).classList.remove('hidden');
             document.getElementById(`btn-${tabId}`).className = "px-4 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow-md";
 
-            if(tabId === 'main') renderMainDashboard();
-            if(tabId === 'logs') filterLogs();
+            if (tabId === 'main') renderMainDashboard();
+            if (tabId === 'add') populateCustomerDropdown();
+            if (tabId === 'logs') {
+                if (selectedCustomerForProfile) {
+                    renderCustomerCards();
+                } else {
+                    renderCustomersDirectory();
+                }
+                filterGlobalLogs();
+            }
+        }
+
+        // التبديل داخل تبويب السجل بين "ملفات الزبائن" و "البحث الإجمالي"
+        function switchLogMode(mode) {
+            const btnCustomers = document.getElementById('mode-customers');
+            const btnGlobal = document.getElementById('mode-global');
+            const viewCustomers = document.getElementById('view-customers-mode');
+            const viewGlobal = document.getElementById('view-global-mode');
+
+            if (mode === 'customers') {
+                btnCustomers.className = "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow";
+                btnGlobal.className = "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white";
+                viewCustomers.classList.remove('hidden');
+                viewGlobal.classList.add('hidden');
+                closeCustomerProfile();
+            } else {
+                btnGlobal.className = "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow";
+                btnCustomers.className = "flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-sm font-black transition text-gray-300 hover:text-white";
+                viewGlobal.classList.remove('hidden');
+                viewCustomers.classList.add('hidden');
+                filterGlobalLogs();
+            }
+        }
+
+        // استخراج الرقم من نص الكمية لحساب المجموع (مثلاً "50 متر" -> 50)
+        function parseQuantityNumber(qtyStr) {
+            if (!qtyStr) return 0;
+            const match = String(qtyStr).replace(/,/g, '.').match(/[\d.]+/);
+            return match ? parseFloat(match[0]) : 0;
+        }
+
+        // عرض دليل الزبائن (كل زبون كملف مستقل)
+        function renderCustomersDirectory() {
+            const grid = document.getElementById('customers-grid');
+            const searchQuery = (document.getElementById('customer-search-input').value || '').trim().toLowerCase();
+            let allCustomers = getAllUniqueCustomers();
+
+            if (searchQuery) {
+                allCustomers = allCustomers.filter(name => name.toLowerCase().includes(searchQuery));
+            }
+
+            if (!allCustomers.length) {
+                grid.innerHTML = `<p class="text-gray-500 font-black col-span-full text-center py-10 text-base">لا يوجد زبائن مطابقون للبحث.</p>`;
+                return;
+            }
+
+            grid.innerHTML = allCustomers.map(name => {
+                const custApps = appointments.filter(a => (a.customer_name || '').trim() === name);
+                const totalQty = custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+                const lastDate = custApps.length ? custApps.map(a => a.pour_date).sort().reverse()[0] : 'لا يوجد';
+
+                return `
+                    <div onclick="openCustomerProfile('${name.replace(/'/g, "\\'")}')" class="cursor-pointer bg-slate-950 border-2 border-slate-800 hover:border-amber-500 rounded-3xl p-5 transition shadow-lg flex flex-col justify-between space-y-4 group">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl font-black group-hover:bg-amber-500 group-hover:text-slate-950 transition">
+                                    <i class="fa-solid fa-user-tie"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-black text-white group-hover:text-amber-400 transition">${name}</h3>
+                                    <span class="text-xs font-bold text-gray-400">آخر صب: ${lastDate}</span>
+                                </div>
+                            </div>
+                            <i class="fa-solid fa-chevron-left text-gray-500 group-hover:text-amber-400 transition"></i>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/80 text-center">
+                            <div class="bg-slate-900 rounded-xl p-2">
+                                <span class="text-[11px] text-gray-400 block font-bold">عدد المواعيد</span>
+                                <strong class="text-sky-400 text-sm font-black">${custApps.length} موعد</strong>
+                            </div>
+                            <div class="bg-slate-900 rounded-xl p-2">
+                                <span class="text-[11px] text-gray-400 block font-bold">إجمالي الكميات</span>
+                                <strong class="text-amber-400 text-sm font-black">${totalQty} م³</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // فتح صفحة الزبون لعرض كارتاته
+        function openCustomerProfile(customerName) {
+            selectedCustomerForProfile = customerName;
+            document.getElementById('customers-directory').classList.add('hidden');
+            document.getElementById('customer-profile-view').classList.remove('hidden');
+            document.getElementById('profile-customer-name').innerText = customerName;
+            resetProfileFilter();
+        }
+
+        function closeCustomerProfile() {
+            selectedCustomerForProfile = null;
+            document.getElementById('customer-profile-view').classList.add('hidden');
+            document.getElementById('customers-directory').classList.remove('hidden');
+            renderCustomersDirectory();
+        }
+
+        function resetProfileFilter() {
+            document.getElementById('profile-date-from').value = '';
+            document.getElementById('profile-date-to').value = '';
+            renderCustomerCards();
+        }
+
+        // رسم كارتات المواعيد داخل صفحة الزبون
+        function renderCustomerCards() {
+            if (!selectedCustomerForProfile) return;
+            const dateFrom = document.getElementById('profile-date-from').value;
+            const dateTo = document.getElementById('profile-date-to').value;
+
+            let custApps = appointments.filter(a => (a.customer_name || '').trim() === selectedCustomerForProfile);
+
+            if (dateFrom) custApps = custApps.filter(a => a.pour_date >= dateFrom);
+            if (dateTo) custApps = custApps.filter(a => a.pour_date <= dateTo);
+
+            // ترتيب من الأحدث للأقدم
+            custApps.sort((a, b) => (b.pour_date || '').localeCompare(a.pour_date || ''));
+
+            const totalQty = custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+            document.getElementById('profile-total-count').innerText = `${custApps.length} موعد`;
+            document.getElementById('profile-total-qty').innerText = `${totalQty} م³`;
+
+            const cardsGrid = document.getElementById('customer-cards-grid');
+            cardsGrid.innerHTML = custApps.length
+                ? custApps.map(item => cardHtml(item, true)).join('')
+                : `<p class="text-gray-500 font-black col-span-full text-center py-10 text-base">لا توجد مواعيد مسجلة لهذا الزبون في هذه الفترة.</p>`;
         }
 
         function togglePumpField() {
@@ -299,7 +676,7 @@
             const pumpContainer = document.getElementById('pump_container');
             const pumpInput = document.getElementById('pump_name');
 
-            if(pourType === 'مضخة') {
+            if (pourType === 'مضخة') {
                 pumpContainer.classList.remove('hidden');
                 pumpInput.required = true;
             } else {
@@ -309,9 +686,15 @@
             }
         }
 
-        // حفظ أو تحديث الموعد في قاعدة بيانات Firebase مباشرة
+        // حفظ أو تحديث الموعد
         function saveAppointment(e) {
             e.preventDefault();
+
+            const selectedCust = document.getElementById('customer_name').value;
+            if (!selectedCust || selectedCust === '__ADD_NEW__') {
+                alert('يرجى اختيار اسم الزبون أولاً!');
+                return;
+            }
 
             const hour = document.getElementById('time_hour').value;
             const minute = document.getElementById('time_minute').value;
@@ -321,7 +704,7 @@
 
             const appData = {
                 location_zone: document.getElementById('location_zone').value,
-                customer_name: document.getElementById('customer_name').value,
+                customer_name: selectedCust,
                 pour_site: document.getElementById('pour_site').value,
                 quantity: document.getElementById('quantity').value,
                 pour_date: document.getElementById('pour_date').value,
@@ -339,21 +722,19 @@
                         alert('تم تحديث الموعد بنجاح!');
                         cancelEdit();
                         switchTab('main');
-                    }).catch(err => {
-                        alert('فشل التحديث: ' + err.message);
-                    });
+                    }).catch(err => alert('فشل التحديث: ' + err.message));
                 } else {
                     database.ref('appointments').push(appData).then(() => {
                         alert('تم حفظ الموعد بنجاح!');
                         document.getElementById('appointment-form').reset();
+                        previousSelectedCustomer = '';
+                        populateCustomerDropdown();
                         document.getElementById('pour_date').value = todayStr;
                         document.getElementById('time_minute').value = '00';
                         document.getElementById('time_ampm').value = 'ص';
                         togglePumpField();
                         switchTab('main');
-                    }).catch(err => {
-                        alert('فشل الحفظ: ' + err.message);
-                    });
+                    }).catch(err => alert('فشل الحفظ: ' + err.message));
                 }
             } else {
                 alert('خطأ: لم يتم الاتصال بقاعدة بيانات Firebase.');
@@ -386,6 +767,8 @@
                 const item = appointments.find(i => i.id == id);
                 if (!item) return;
 
+                populateCustomerDropdown(item.customer_name || '');
+
                 document.getElementById('edit_id').value = item.id;
                 document.getElementById('location_zone').value = item.location_zone;
                 document.getElementById('customer_name').value = item.customer_name || '';
@@ -412,6 +795,8 @@
 
         function cancelEdit() {
             document.getElementById('appointment-form').reset();
+            previousSelectedCustomer = '';
+            populateCustomerDropdown();
             document.getElementById('edit_id').value = '';
             document.getElementById('pour_date').value = todayStr;
             document.getElementById('time_minute').value = '00';
@@ -432,11 +817,12 @@
             document.getElementById('today-count').innerText = `${todayItems.length} موعد`;
             document.getElementById('tomorrow-count').innerText = `${tomorrowItems.length} موعد`;
 
-            todayList.innerHTML = todayItems.length ? todayItems.map(item => cardHtml(item)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة لهذا اليوم.</p>';
-            tomorrowList.innerHTML = tomorrowItems.length ? tomorrowItems.map(item => cardHtml(item)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة ليوم غدٍ.</p>';
+            todayList.innerHTML = todayItems.length ? todayItems.map(item => cardHtml(item, false)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة لهذا اليوم.</p>';
+            tomorrowList.innerHTML = tomorrowItems.length ? tomorrowItems.map(item => cardHtml(item, false)).join('') : '<p class="text-gray-500 font-black col-span-full text-center py-10 text-lg">لا توجد مواعيد مسجلة ليوم غدٍ.</p>';
         }
 
-        function cardHtml(item) {
+        // قالب الكارت (يدعم إظهار تاريخ الصب بوضوح داخل صفحة سجل الزبون)
+        function cardHtml(item, showDateBadge = false) {
             let badgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-700';
             if (item.location_zone === 'الموقع الجنوبي') {
                 badgeClass = 'bg-orange-950 text-orange-300 border border-orange-700';
@@ -446,9 +832,12 @@
 
             return `
                 <div class="bg-slate-950 border-2 border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-4 hover:border-amber-500 transition shadow-xl">
-                    <div class="flex justify-between items-center">
+                    <div class="flex flex-wrap justify-between items-center gap-2">
                         <span class="text-xs font-black px-3.5 py-1.5 rounded-2xl ${badgeClass}">${item.location_zone}</span>
-                        <span class="bg-amber-500/20 text-amber-400 font-black text-xs px-3.5 py-1.5 rounded-2xl border border-amber-500/40"><i class="fa-regular fa-clock ml-1"></i>${item.pour_time}</span>
+                        <div class="flex items-center gap-1.5">
+                            ${showDateBadge ? `<span class="bg-sky-500/20 text-sky-300 font-black text-xs px-3 py-1.5 rounded-2xl border border-sky-500/40"><i class="fa-regular fa-calendar ml-1"></i>${item.pour_date}</span>` : ''}
+                            <span class="bg-amber-500/20 text-amber-400 font-black text-xs px-3 py-1.5 rounded-2xl border border-amber-500/40"><i class="fa-regular fa-clock ml-1"></i>${item.pour_time}</span>
+                        </div>
                     </div>
 
                     <div class="space-y-2 bg-slate-900/60 p-4 rounded-2xl border border-slate-800/80">
@@ -473,17 +862,26 @@
             `;
         }
 
-        function filterLogs() {
-            const fDate = document.getElementById('filter-date').value;
+        // البحث الإجمالي في وقت محدد
+        function filterGlobalLogs() {
+            const fFrom = document.getElementById('filter-date-from').value;
+            const fTo = document.getElementById('filter-date-to').value;
             const fZone = document.getElementById('filter-zone').value;
             const fType = document.getElementById('filter-type').value;
             const tbody = document.getElementById('logs-table-body');
 
             let filtered = appointments.filter(item => {
-                return (!fDate || item.pour_date === fDate) &&
+                return (!fFrom || item.pour_date >= fFrom) &&
+                       (!fTo || item.pour_date <= fTo) &&
                        (!fZone || item.location_zone === fZone) &&
                        (!fType || item.pour_type === fType);
             });
+
+            filtered.sort((a, b) => (b.pour_date || '').localeCompare(a.pour_date || ''));
+
+            const totalQty = filtered.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+            document.getElementById('global-total-count').innerText = `${filtered.length} موعد`;
+            document.getElementById('global-total-qty').innerText = `${totalQty} م³`;
 
             tbody.innerHTML = filtered.length ? filtered.map(item => {
                 let zoneBadgeClass = 'bg-indigo-950 text-indigo-300 border border-indigo-700';
@@ -512,13 +910,15 @@
             }).join('') : `<tr><td colspan="6" class="text-center py-10 text-gray-500 font-black text-base">لا توجد نتائج تطابق خيارات البحث.</td></tr>`;
         }
 
-        function resetFilters() {
-            document.getElementById('filter-date').value = '';
+        function resetGlobalFilters() {
+            document.getElementById('filter-date-from').value = '';
+            document.getElementById('filter-date-to').value = '';
             document.getElementById('filter-zone').value = '';
             document.getElementById('filter-type').value = '';
-            filterLogs();
+            filterGlobalLogs();
         }
 
+        populateCustomerDropdown();
         updateViews();
     </script>
 </body>
