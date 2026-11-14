@@ -100,13 +100,24 @@
                     </select>
                 </div>
 
-                <!-- اسم الزبون (قائمة منسدلة + خيار إضافة زبون جديد في الأعلى) -->
-                <div>
+                <!-- اسم الزبون (بحث فوري داخل حقل الإدخال مع قائمة منسدلة) -->
+                <div class="relative">
                     <label class="block text-sm font-black text-gray-300 mb-2"><i class="fa-solid fa-user ml-1"></i> اسم الزبون</label>
-                    <select id="customer_name" onchange="handleCustomerSelect(this)" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
-                        <option value="" disabled selected>-- اختر اسم الزبون --</option>
-                        <option value="__ADD_NEW__" class="bg-amber-500 text-slate-950 font-black">+ إضافة زبون جديد</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="customer_search_box" oninput="filterCustomerDropdown(this.value)" onfocus="showCustomerDropdown()" placeholder="اكتب للبحث أو اختر اسم الزبون..." autocomplete="off" required class="w-full rounded-2xl bg-slate-950 border border-slate-700 px-4 py-3 text-white font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                        <i class="fa-solid fa-chevron-down absolute left-4 top-4 text-gray-400 pointer-events-none text-xs"></i>
+                    </div>
+                    
+                    <!-- القائمة المنسدلة المخصصة للبحث -->
+                    <div id="customer_dropdown_list" class="hidden absolute z-30 left-0 right-0 mt-1 bg-slate-950 border border-slate-700 rounded-2xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-slate-800">
+                        <!-- خيار إضافة زبون جديد في الأعلى دائماً -->
+                        <div onclick="openNewCustomerModal(true); hideCustomerDropdown();" class="px-4 py-3 text-amber-400 font-black hover:bg-amber-500/20 cursor-pointer flex items-center">
+                            <i class="fa-solid fa-plus-circle ml-2"></i> + إضافة زبون جديد
+                        </div>
+                        <div id="customer_options_container">
+                            <!-- تُعبأ ديناميكياً بالأسماء المطابقة للبحث -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- عنوان موقع الصب -->
@@ -385,7 +396,6 @@
         let appointments = [];
         let savedCustomers = [];
         let selectedCustomerForProfile = null;
-        let previousSelectedCustomer = "";
         let openedFromDropdown = false;
 
         const todayStr = new Date().toISOString().split('T')[0];
@@ -409,7 +419,7 @@
                 } else {
                     appointments = [];
                 }
-                populateCustomerDropdown();
+                renderCustomerDropdownList();
                 updateViews();
             });
 
@@ -424,7 +434,7 @@
                 } else {
                     savedCustomers = [];
                 }
-                populateCustomerDropdown();
+                renderCustomerDropdownList();
                 updateViews();
             });
         }
@@ -441,36 +451,56 @@
             return Array.from(namesSet).sort((a, b) => a.localeCompare(b, 'ar'));
         }
 
-        // تعبئة القائمة المنسدلة للزبائن مع إبقاء خيار "+ إضافة زبون جديد" في الأعلى
-        function populateCustomerDropdown(selectNameAfter = null) {
-            const select = document.getElementById('customer_name');
-            const currentVal = selectNameAfter || select.value;
-            const customersList = getAllUniqueCustomers();
-
-            let optionsHtml = `
-                <option value="" disabled ${!currentVal || currentVal === '__ADD_NEW__' ? 'selected' : ''}>-- اختر اسم الزبون --</option>
-                <option value="__ADD_NEW__" class="bg-amber-500 text-slate-950 font-black">+ إضافة زبون جديد</option>
-            `;
-
-            customersList.forEach(name => {
-                const isSelected = (currentVal === name) ? 'selected' : '';
-                optionsHtml += `<option value="${name}" ${isSelected}>${name}</option>`;
-            });
-
-            select.innerHTML = optionsHtml;
-            if (currentVal && currentVal !== '__ADD_NEW__') {
-                previousSelectedCustomer = currentVal;
-            }
+        // إظهار وإخفاء قائمة البحث المنسدلة للزبائن
+        function showCustomerDropdown() {
+            document.getElementById('customer_dropdown_list').classList.remove('hidden');
+            filterCustomerDropdown(document.getElementById('customer_search_box').value);
         }
 
-        // التعامل مع اختيار "+ إضافة زبون جديد" من القائمة المنسدلة
-        function handleCustomerSelect(selectEl) {
-            if (selectEl.value === '__ADD_NEW__') {
-                selectEl.value = previousSelectedCustomer || '';
-                openNewCustomerModal(true);
-            } else {
-                previousSelectedCustomer = selectEl.value;
+        function hideCustomerDropdown() {
+            setTimeout(() => {
+                document.getElementById('customer_dropdown_list').classList.add('hidden');
+            }, 200);
+        }
+
+        // إغلاق القائمة عند النقر خارجها
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('customer_search_box').closest('div.relative');
+            if (container && !container.contains(e.target)) {
+                document.getElementById('customer_dropdown_list').classList.add('hidden');
             }
+        });
+
+        // فلترة وعرض الأسماء في القائمة المنسدلة بناءً على ما يكتبه المستخدم
+        function filterCustomerDropdown(query = '') {
+            const container = document.getElementById('customer_options_container');
+            const allCustomers = getAllUniqueCustomers();
+            const lowerQuery = query.trim().toLowerCase();
+
+            const filtered = allCustomers.filter(name => name.toLowerCase().includes(lowerQuery));
+
+            if (!filtered.length) {
+                container.innerHTML = `<div class="px-4 py-3 text-gray-500 font-bold text-xs text-center">لا توجد نتائج مطابقة</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(name => `
+                <div onclick="selectCustomerItem('${name.replace(/'/g, "\\'")}')" class="px-4 py-3 text-white font-bold hover:bg-slate-900 cursor-pointer transition flex items-center justify-between">
+                    <span>${name}</span>
+                </div>
+            `).join('');
+        }
+
+        function selectCustomerItem(name) {
+            document.getElementById('customer_search_box').value = name;
+            document.getElementById('customer_dropdown_list').classList.add('hidden');
+        }
+
+        function renderCustomerDropdownList(selectNameAfter = null) {
+            if (selectNameAfter) {
+                document.getElementById('customer_search_box').value = selectNameAfter;
+            }
+            filterCustomerDropdown(document.getElementById('customer_search_box').value);
         }
 
         function openNewCustomerModal(fromDropdown = false) {
@@ -484,7 +514,7 @@
             document.getElementById('new-customer-modal').classList.add('hidden');
         }
 
-        // حفظ الزبون الجديد في Firebase
+        // حفظ الزبون الجديد في Firebase واختياره مباشرة
         function saveNewCustomer(e) {
             e.preventDefault();
             const rawName = document.getElementById('new_customer_input').value.trim();
@@ -493,7 +523,7 @@
             const existing = getAllUniqueCustomers();
             if (existing.includes(rawName)) {
                 alert('هذا الزبون مسجل مسبقاً في القائمة!');
-                populateCustomerDropdown(rawName);
+                selectCustomerItem(rawName);
                 closeNewCustomerModal();
                 return;
             }
@@ -501,7 +531,7 @@
             if (database) {
                 database.ref('customers').push({ name: rawName }).then(() => {
                     closeNewCustomerModal();
-                    populateCustomerDropdown(rawName);
+                    selectCustomerItem(rawName);
                     if (!openedFromDropdown) {
                         alert(`تمت إضافة الزبون "${rawName}" بنجاح!`);
                     }
@@ -535,7 +565,7 @@
             document.getElementById(`btn-${tabId}`).className = "px-4 py-2.5 rounded-xl text-sm font-black transition bg-amber-500 text-slate-950 shadow-md";
 
             if (tabId === 'main') renderMainDashboard();
-            if (tabId === 'add') populateCustomerDropdown();
+            if (tabId === 'add') renderCustomerDropdownList();
             if (tabId === 'logs') {
                 if (selectedCustomerForProfile) {
                     renderCustomerCards();
@@ -690,9 +720,9 @@
         function saveAppointment(e) {
             e.preventDefault();
 
-            const selectedCust = document.getElementById('customer_name').value;
-            if (!selectedCust || selectedCust === '__ADD_NEW__') {
-                alert('يرجى اختيار اسم الزبون أولاً!');
+            const selectedCust = document.getElementById('customer_search_box').value.trim();
+            if (!selectedCust) {
+                alert('يرجى تحديد أو كتابة اسم الزبون!');
                 return;
             }
 
@@ -727,8 +757,7 @@
                     database.ref('appointments').push(appData).then(() => {
                         alert('تم حفظ الموعد بنجاح!');
                         document.getElementById('appointment-form').reset();
-                        previousSelectedCustomer = '';
-                        populateCustomerDropdown();
+                        renderCustomerDropdownList('');
                         document.getElementById('pour_date').value = todayStr;
                         document.getElementById('time_minute').value = '00';
                         document.getElementById('time_ampm').value = 'ص';
@@ -767,11 +796,11 @@
                 const item = appointments.find(i => i.id == id);
                 if (!item) return;
 
-                populateCustomerDropdown(item.customer_name || '');
+                renderCustomerDropdownList(item.customer_name || '');
 
                 document.getElementById('edit_id').value = item.id;
                 document.getElementById('location_zone').value = item.location_zone;
-                document.getElementById('customer_name').value = item.customer_name || '';
+                document.getElementById('customer_search_box').value = item.customer_name || '';
                 document.getElementById('pour_site').value = item.pour_site;
                 document.getElementById('quantity').value = item.quantity;
                 document.getElementById('pour_date').value = item.pour_date;
@@ -795,8 +824,7 @@
 
         function cancelEdit() {
             document.getElementById('appointment-form').reset();
-            previousSelectedCustomer = '';
-            populateCustomerDropdown();
+            renderCustomerDropdownList('');
             document.getElementById('edit_id').value = '';
             document.getElementById('pour_date').value = todayStr;
             document.getElementById('time_minute').value = '00';
@@ -918,7 +946,7 @@
             filterGlobalLogs();
         }
 
-        populateCustomerDropdown();
+        renderCustomerDropdownList();
         updateViews();
     </script>
 </body>
