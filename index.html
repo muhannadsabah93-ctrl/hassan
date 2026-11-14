@@ -598,11 +598,16 @@
             }
         }
 
-        // استخراج الرقم من نص الكمية لحساب المجموع (مثلاً "50 متر" -> 50)
+        // تحويل الأرقام العربية/الفارسية إلى إنجليزية واستخراج القيمة الرقمية بدقة
         function parseQuantityNumber(qtyStr) {
-            if (!qtyStr) return 0;
-            const match = String(qtyStr).replace(/,/g, '.').match(/[\d.]+/);
-            return match ? parseFloat(match[0]) : 0;
+            if (qtyStr === null || qtyStr === undefined) return 0;
+            const normalized = String(qtyStr)
+                .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+                .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                .replace(/[،,]/g, '.');
+            const match = normalized.match(/[\d.]+/);
+            const num = match ? parseFloat(match[0]) : 0;
+            return isNaN(num) ? 0 : Math.round(num * 100) / 100;
         }
 
         // عرض دليل الزبائن (كل زبون كملف مستقل)
@@ -622,7 +627,7 @@
 
             grid.innerHTML = allCustomers.map(name => {
                 const custApps = appointments.filter(a => (a.customer_name || '').trim() === name);
-                const totalQty = custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+                const totalQty = Math.round(custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0) * 100) / 100;
                 const lastDate = custApps.length ? custApps.map(a => a.pour_date).sort().reverse()[0] : 'لا يوجد';
 
                 return `
@@ -691,7 +696,7 @@
             // ترتيب من الأحدث للأقدم
             custApps.sort((a, b) => (b.pour_date || '').localeCompare(a.pour_date || ''));
 
-            const totalQty = custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+            const totalQty = Math.round(custApps.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0) * 100) / 100;
             document.getElementById('profile-total-count').innerText = `${custApps.length} موعد`;
             document.getElementById('profile-total-qty').innerText = `${totalQty} م³`;
 
@@ -907,7 +912,7 @@
 
             filtered.sort((a, b) => (b.pour_date || '').localeCompare(a.pour_date || ''));
 
-            const totalQty = filtered.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0);
+            const totalQty = Math.round(filtered.reduce((sum, item) => sum + parseQuantityNumber(item.quantity), 0) * 100) / 100;
             document.getElementById('global-total-count').innerText = `${filtered.length} موعد`;
             document.getElementById('global-total-qty').innerText = `${totalQty} م³`;
 
